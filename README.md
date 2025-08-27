@@ -21,6 +21,7 @@ python app.py
 ```
 
 ## 代码结构
+```plaintext
 project/
 │── main.py               # 程序入口
 │── ui/
@@ -34,6 +35,7 @@ project/
 │    └── video_stream.py      # 数据源（摄像头/视频流）
 │── resources/
 │    └── icons/ ...           # 图标、背景等
+```
 
 
 ## 使用说明
@@ -48,3 +50,8 @@ project/
 
 - 确保视频流地址可访问
 - 无
+
+
+## 界面展示
+
+![界面预览](resources/demo.png)
