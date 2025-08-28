@@ -11,7 +11,7 @@ from PyQt5.QtGui import QPixmap, QPainter, QColor, QBrush, QLinearGradient,  QIc
 from info import __appname__, __preferred_device__, __url__, __version__
 from utils.logger import logger
 from utils.general import gradient_text
-
+from model.server import stop_all_servers
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -23,8 +23,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # 直接加载 ui 文件
         uic.loadUi("ui/mainwindow.ui", self)
             
-
-
         self.controller = MainController(self)
         
         # 动态主题
@@ -80,17 +78,19 @@ class MainWindow(QtWidgets.QMainWindow):
             painter.drawEllipse(int(dot[0]), int(dot[1]), int(dot[2]), int(dot[2]))
 
 def main():
-    logger.setLevel(getattr(logging, "INFO"))
-    logger.info(
-        f"🚀 {gradient_text(f'Smart-Client v{__version__} launched!')}"
-    )
+    try:
+        logger.setLevel(getattr(logging, "INFO"))
+        logger.info(
+            f"🚀 {gradient_text(f'Smart-Client v{__version__} launched!')}"
+        )
 
-    logger.info(f"⭐ If you like it, give us a star: {__url__}")
+        logger.info(f"⭐ If you like it, give us a star: {__url__}")
 
-    app = QtWidgets.QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
-
+        app = QtWidgets.QApplication(sys.argv)
+        window = MainWindow()
+        window.show()
+        sys.exit(app.exec_())
+    finally:
+        stop_all_servers()
 if __name__ == "__main__":
     main()

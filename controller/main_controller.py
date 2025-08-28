@@ -13,6 +13,8 @@ from model.draw import ImageDraw
 from PyQt5.QtGui import QImage, QPixmap
 from utils.logger import logger
 import numpy as np
+import threading
+from model.server import start_server, stop_server, stop_all_servers
 
 class MainController:
     def __init__(self, ui):
@@ -22,25 +24,37 @@ class MainController:
         self.file_name = None
         self.roi_points = []
         self.drawer = ImageDraw()
+        self.current_server = None
+
         self.video_timer = QTimer()
         self.video_timer.timeout.connect(self.process_current_frame)
 
         
         self.mode = 'image' # choice = ['image', 'folder', 'video']
         self.api = {
-            'droneroadcrack':'http://127.0.0.1:5000/sv/detection_droneroadcrack',
-            'riverfloatingdebris':'http://127.0.0.1:5000/sv/detection_riverfloatingdebris',
+            '03_vehicle': 'http://127.0.0.1:5000/sv/tracking_vehicle',      
+            '06_person': 'http://127.0.0.1:5000/sv/tracking_person',
+            '07_fire': 'http://127.0.0.1:5000/sv/detection_fire',
+            '08_smoke': 'http://127.0.0.1:5000/sv/detection_smoke',
+            '09_roadmanhole': 'http://127.0.0.1:5000/sv/detection_roadmanhole',
+            '10_roadpothole': 'http://127.0.0.1:5000/sv/detection_roadpothole',
+            '11_roadcrack': 'http://127.0.0.1:5000/sv/detection_roadcrack',
+            '12_roadwater': 'http://127.0.0.1:5000/sv/detection_roadwaterlogging',
+            '13_animal': 'http://127.0.0.1:5000/sv/detection_animal',
+            '14_overflow': 'http://127.0.0.1:5000/sv/detection_garbageoverflow',
+            '15_roadcongestion': 'http://127.0.0.1:5000/sv/detection_roadcongestion',
+            '16_illegalparking': 'http://127.0.0.1:5000/sv/tracking_illegalparking',
+            '17_licenseplate': 'http://127.0.0.1:5000/sv/recognition_licenseplate',
+            '18_slagtruck': 'http://127.0.0.1:5000/sv/detection_slagtruck',
+            '19_elevator': 'http://127.0.0.1:5000/sv/detection_elevator',
+            '20_employeeabsence': 'http://127.0.0.1:5000/sv/detection_employeeabsence',
+            '21_nvmencroachment': 'http://127.0.0.1:5000/sv/detection_nmvencroachment',
+            '22_face': 'http://127.0.0.1:5000/sv/recognition_face',
 
-            'animal':'http://127.0.0.1:5000/sv/detection_animal',
-            'person':'http://127.0.0.1:5000/sv/detection_person',
-            'elevator':'http://127.0.0.1:5000/sv/detection_elevator',
-            'licenseplate':'http://127.0.0.1:5000/sv/recognition_licenseplate', # 17
 
-            'garbageoverflow':'http://127.0.0.1:5000/sv/detection_garbageoverflow',
-            'roadcongestion':'http://127.0.0.1:5000/sv/detection_roadcongestion',
-            'employeeabsence':'http://127.0.0.1:5000/sv/detection_employeeabsence',
-            'nmvencroachment': 'http://127.0.0.1:5000/sv/detection_nmvencroachment' # 21
-
+            '53_droneroadcrack':'http://127.0.0.1:5000/sv/detection_droneroadcrack',
+            '56_roadstall':'http://127.0.0.1:5000/sv/detection_roadstall',
+            '57_riverfloatingdebris':'http://127.0.0.1:5000/sv/detection_riverfloatingdebris',
         }
 
         # 追加页面信息
@@ -145,7 +159,17 @@ class MainController:
             logger.warning('未选择文件夹')
 
     def select_model(self, index):
+        stop_all_servers()
+
         model_name = self.ui.selectModelBox.itemText(index)
+        self.thread = threading.Thread(
+                target=start_server,
+                args=(model_name,),
+                daemon=True
+            )
+        self.thread.start()
+        self.current_server = model_name
+
         self.model = Inference(self.api[model_name])
         logger.info(f"选择了模型: {model_name}")
     
@@ -278,7 +302,6 @@ class MainController:
             column_width = self.ui.tableWidget.columnWidth(3)
             row_height = self.ui.tableWidget.rowHeight(index)
             label.setFixedSize(column_width, row_height)
-            label.setScaledContents(True)
 
             instance_image = instance['image']
             instance_image = cv2.cvtColor(instance_image, cv2.COLOR_BGR2RGB)
@@ -290,7 +313,10 @@ class MainController:
             bytes_per_line = 3 * width
             q_image = QImage(instance_image.data, width, height, bytes_per_line, QImage.Format_RGB888).rgbSwapped()
             pixmap = QPixmap.fromImage(q_image)
-            pixmap = pixmap.scaled(label.width(), label.height(), Qt.KeepAspectRatio)
+            pixmap = pixmap.scaled(label.size(),
+                                   Qt.KeepAspectRatio,
+                                   Qt.SmoothTransformation
+                                )
             label.setPixmap(pixmap)
 
             instance_class = QTableWidgetItem(instance_class)
